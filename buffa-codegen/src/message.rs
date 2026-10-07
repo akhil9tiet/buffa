@@ -484,7 +484,12 @@ fn generate_message_with_nesting(
     )?;
 
     let type_url = format!("type.googleapis.com/{proto_fqn}");
-    let upper = crate::oneof::to_snake_case(rust_name).to_uppercase();
+    // From the name before `escape_type_name`: the suffix would give `bool`
+    // (`bool_`) and `Bool_` one constant name, and two siblings that
+    // snake_case alike are already rejected as a module conflict.
+    let upper =
+        crate::oneof::to_snake_case(&format!("{}{proto_name}", ctx.config.type_name_prefix))
+            .to_uppercase();
 
     // JSON Any entry — one per message with `generate_json`. Always
     // `is_wkt: false`: WKTs live in buffa-types and register themselves via

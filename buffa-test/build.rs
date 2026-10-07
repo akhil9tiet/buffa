@@ -552,6 +552,21 @@ fn main() {
         .compile()
         .expect("buffa_build failed for prelude_shadow.proto");
 
+    // Messages and enums named after primitive types and keywords. JSON,
+    // text and setters are on because the serde derives and the generated
+    // text and setter code name the primitives. `Arbitrary` is on so that
+    // the build fails if a keyword-named type is declared as a raw
+    // identifier, which its derive panics on.
+    buffa_build::Config::new()
+        .files(&["protos/type_name_escapes.proto"])
+        .includes(&["protos/"])
+        .generate_json(true)
+        .generate_text(true)
+        .generate_with_setters(true)
+        .generate_arbitrary(true)
+        .compile()
+        .expect("buffa_build failed for type_name_escapes.proto");
+
     // Special float defaults in a package named `f32` must not resolve
     // against generated `f32`/`f64` modules. The nested extension constants
     // deliberately occupy all six shadowable paths; compilation is the
