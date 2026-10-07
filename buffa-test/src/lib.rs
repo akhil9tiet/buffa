@@ -582,6 +582,16 @@ pub mod prelude_shadow {
     buffa::include_proto!("test.prelude_shadow");
 }
 
+#[allow(
+    clippy::derivable_impls,
+    clippy::match_single_binding,
+    dead_code,
+    non_camel_case_types
+)]
+pub mod type_name_escapes {
+    buffa::include_proto!("test.type_name_escapes");
+}
+
 #[allow(clippy::derivable_impls, clippy::match_single_binding, dead_code)]
 pub mod float_default_shadow {
     buffa::include_proto!("f32");
@@ -1129,6 +1139,43 @@ pub mod widet {
 #[cfg(has_table_codec)]
 pub mod tcx {
     buffa::include_proto!("tcx");
+}
+
+// `bru` is `table_bridge.proto` unrolled, and `brt` has the table codec except
+// for `Hot`, so table and unrolled messages hold each other. `xe` is a package
+// of table messages that `xfu` (unrolled) and `xft` (table) hold through an
+// `extern_path`.
+#[allow(clippy::derivable_impls, clippy::match_single_binding)]
+#[cfg(has_table_codec)]
+pub mod bru {
+    buffa::include_proto!("bru");
+}
+#[forbid(unsafe_code)]
+#[allow(clippy::derivable_impls, clippy::match_single_binding)]
+#[cfg(has_table_codec)]
+pub mod brt {
+    buffa::include_proto!("brt");
+}
+#[forbid(unsafe_code)]
+#[cfg(has_table_codec)]
+pub mod xe {
+    buffa::include_proto!("xe");
+}
+#[cfg(has_table_codec)]
+pub mod xfu {
+    buffa::include_proto!("xfu");
+}
+#[forbid(unsafe_code)]
+#[cfg(has_table_codec)]
+pub mod xft {
+    buffa::include_proto!("xft");
+}
+
+// `tbz` has the table codec and `bytes` fields stored as `bytes::Bytes`. The
+// messages that have or hold such a field stay unrolled.
+#[cfg(has_table_codec)]
+pub mod tbz {
+    buffa::include_proto!("tbz");
 }
 
 // Two packages, the second holding messages of the first: `xau`/`xbu` unrolled,
