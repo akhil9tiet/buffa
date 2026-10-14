@@ -253,7 +253,10 @@ fn keyword_rename_note(kind: &str, resolved: &str) -> String {
 /// `serde(skip)`, arbitrary tokens, or an empty string — is rejected with the
 /// `syn` parse error.
 fn parse_outer_attribute_string(attr_str: &str) -> syn::Result<proc_macro2::TokenStream> {
-    syn::parse_str_with(attr_str, |input: syn::parse::ParseStream| {
+    // `syn::parse_str_with` does not exist in syn 2; closures implement the
+    // `syn::parse::Parser` trait, whose `parse_str` parses the whole string
+    // and errors on trailing tokens.
+    let parse_attrs = |input: syn::parse::ParseStream| -> syn::Result<proc_macro2::TokenStream> {
         let mut tokens = proc_macro2::TokenStream::new();
         while !input.is_empty() {
             let parsed = input.call(syn::Attribute::parse_outer)?;
@@ -270,7 +273,8 @@ fn parse_outer_attribute_string(attr_str: &str) -> syn::Result<proc_macro2::Toke
             return Err(input.error("expected at least one attribute"));
         }
         Ok(tokens)
-    })
+    };
+    syn::parse::Parser::parse_str(parse_attrs, attr_str)
 }
 
 impl<'a> CodeGenContext<'a> {
