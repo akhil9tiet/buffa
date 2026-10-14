@@ -1510,8 +1510,12 @@ pub struct CodeGenConfig {
     /// Each entry is `(proto_path, attribute)`. The `proto_path` is matched
     /// as a prefix against the fully-qualified proto name: `"."` applies to
     /// all types, `".my.pkg"` to types in that package, `".my.pkg.MyMessage"`
-    /// to a specific type. The `attribute` is a raw Rust attribute string
-    /// (e.g., `"#[derive(serde::Serialize)]"`).
+    /// to a specific type. The `attribute` is one or more outer Rust
+    /// attributes, each written with its `#[...]` (e.g.,
+    /// `"#[derive(serde::Serialize)]"`). [`generate`] returns
+    /// [`CodeGenError::InvalidCustomAttribute`] for any other string, an
+    /// empty one included. The same rule holds for the five attribute lists
+    /// below.
     pub type_attributes: Vec<(String, String)>,
     /// Custom attributes to inject on generated struct fields.
     ///
@@ -3291,6 +3295,9 @@ fn warn_excluded_refs_msg(
 ///   be written to the same output path.
 /// - [`CodeGenError::InvalidTypeNamePrefix`] if
 ///   [`CodeGenConfig::type_name_prefix`] is neither empty nor PascalCase.
+/// - [`CodeGenError::InvalidCustomAttribute`] if a custom attribute string,
+///   such as one in [`CodeGenConfig::type_attributes`], is not one or more
+///   outer `#[...]` attributes.
 /// - [`CodeGenError::Other`] if `config` sets an option without the option
 ///   it requires: `generate_reflection_vtable` or `shared_descriptor_pool`
 ///   without `generate_reflection`, `shared_descriptor_pool_root` without
@@ -3387,6 +3394,7 @@ pub fn generate_with_diagnostics(
     }
 
     config.validate_type_name_prefix()?;
+    context::validate_custom_attributes(config)?;
 
     // Normalize exclude_packages entries (optional leading dot stripped). The
     // plugin normalizes before it gets here and buffa-build validates in
@@ -5604,11 +5612,13 @@ pub enum CodeGenError {
     /// A custom attribute string configured via [`CodeGenConfig::type_attributes`],
     /// [`CodeGenConfig::field_attributes`], [`CodeGenConfig::message_attributes`],
     /// [`CodeGenConfig::enum_attributes`], [`CodeGenConfig::oneof_attributes`],
-    /// or [`CodeGenConfig::oneof_struct_field_attributes`] could not be parsed
-    /// as a Rust attribute.
+    /// or [`CodeGenConfig::oneof_struct_field_attributes`] is not one or more
+    /// outer `#[...]` attributes. An empty string, an inner attribute
+    /// `#![...]` and a string with any token outside an attribute are all
+    /// rejected, whether or not the rule's path matches a generated item.
     #[error(
-        "invalid custom attribute for path '{path}': '{attribute}' is not a valid \
-         Rust attribute ({detail})"
+        "invalid custom attribute for path '{path}': '{attribute}' must be one or \
+         more outer `#[...]` attributes ({detail})"
     )]
     InvalidCustomAttribute {
         path: String,
